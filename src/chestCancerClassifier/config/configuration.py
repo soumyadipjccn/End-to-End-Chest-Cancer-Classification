@@ -28,6 +28,7 @@ class ConfigurationManager:
         data_ingestion_config = DataIngestionConfig(
             root_dir=Path(config.root_dir),
             source_URL=config.source_URL,
+            kaggle_dataset=getattr(config, 'kaggle_dataset', ''),
             local_data_file=Path(config.local_data_file),
             unzip_dir=Path(config.unzip_dir)
         )

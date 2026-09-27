@@ -5,6 +5,7 @@ from pathlib import Path
 class DataIngestionConfig:
     root_dir: Path
     source_URL: str
+    kaggle_dataset: str
     local_data_file: Path
     unzip_dir: Path
 

@@ -1,7 +1,7 @@
 import os
+import shutil
 import zipfile
 import urllib.request as request
-import numpy as np
 from PIL import Image, ImageDraw
 from pathlib import Path
 from chestCancerClassifier import logger
@@ -13,7 +13,27 @@ class DataIngestion:
         self.config = config
 
     def download_file(self):
-        """Downloads the data file from URL or creates synthetic sample dataset if offline/unavailable."""
+        """Downloads dataset from Kaggle API/KaggleHub, direct URL, or fallback synthetic generation."""
+        dataset_dir = os.path.join(self.config.unzip_dir, "Chest-CT-Scan-data")
+
+        # 1. Attempt download using KaggleHub API if kaggle_dataset is set
+        if hasattr(self.config, 'kaggle_dataset') and self.config.kaggle_dataset:
+            try:
+                import kagglehub
+                logger.info(f"Attempting download from Kaggle dataset: {self.config.kaggle_dataset}")
+                downloaded_path = kagglehub.dataset_download(self.config.kaggle_dataset)
+                logger.info(f"Kaggle dataset downloaded to cache: {downloaded_path}")
+                
+                os.makedirs(dataset_dir, exist_ok=True)
+                shutil.copytree(downloaded_path, dataset_dir, dirs_exist_ok=True)
+                logger.info(f"Kaggle dataset successfully staged at {dataset_dir}")
+                return
+            except ImportError:
+                logger.warning("kagglehub module not installed. Run 'pip install kagglehub' to enable direct Kaggle downloads.")
+            except Exception as e:
+                logger.warning(f"Kaggle dataset download failed: {e}")
+
+        # 2. Attempt direct zip download from source_URL
         if not os.path.exists(self.config.local_data_file):
             try:
                 logger.info(f"Attempting to download data from {self.config.source_URL}")
@@ -21,12 +41,12 @@ class DataIngestion:
                     url=self.config.source_URL,
                     filename=self.config.local_data_file
                 )
-                logger.info(f"{filename} downloaded with following info:\n{headers}")
+                logger.info(f"{filename} downloaded successfully.")
             except Exception as e:
-                logger.warning(f"Download failed with error: {e}. Creating local synthetic CT scan dataset for clean reproduction.")
+                logger.warning(f"Download failed: {e}. Generating local synthetic CT scan dataset.")
                 self.create_synthetic_dataset()
         else:
-            logger.info(f"File already exists of size: {get_size(Path(self.config.local_data_file))}")
+            logger.info(f"Local file already exists of size: {get_size(Path(self.config.local_data_file))}")
 
     def extract_zip_file(self):
         """Extracts the zip file into the data directory."""
@@ -37,8 +57,10 @@ class DataIngestion:
                 zip_ref.extractall(unzip_path)
             logger.info(f"Extracted zip file to {unzip_path}")
         else:
-            logger.info("Zip file not found or invalid zip. Ensuring synthetic CT scan dataset is ready.")
-            self.create_synthetic_dataset()
+            dataset_dir = os.path.join(self.config.unzip_dir, "Chest-CT-Scan-data")
+            if not os.path.exists(dataset_dir) or len(os.listdir(dataset_dir)) == 0:
+                logger.info("Dataset folder missing or empty. Creating synthetic CT scan dataset.")
+                self.create_synthetic_dataset()
 
     def create_synthetic_dataset(self):
         """Creates a realistic synthetic Chest CT scan dataset with 4 categories for testing & local pipelines."""
@@ -55,21 +77,18 @@ class DataIngestion:
                 for i in range(num_samples):
                     img_path = os.path.join(cat_dir, f"{category}_{split}_{i+1}.png")
                     if not os.path.exists(img_path):
-                        # Create realistic CT-scan style grayscale image (224x224)
                         img = Image.new('L', (224, 224), color=20)
                         draw = ImageDraw.Draw(img)
-                        # Draw lung cavity shapes
                         draw.ellipse([30, 40, 100, 180], fill=60)
                         draw.ellipse([120, 40, 190, 180], fill=60)
                         
-                        # Add class-specific lesion/pattern
                         if category == "adenocarcinoma":
-                            draw.ellipse([50, 70, 80, 100], fill=220) # peripheral nodule
+                            draw.ellipse([50, 70, 80, 100], fill=220)
                         elif category == "large_cell_carcinoma":
-                            draw.ellipse([130, 80, 175, 125], fill=240) # large mass
+                            draw.ellipse([130, 80, 175, 125], fill=240)
                         elif category == "squamous_cell_carcinoma":
-                            draw.rectangle([60, 110, 95, 145], fill=200) # central mass
-                        # convert to RGB
+                            draw.rectangle([60, 110, 95, 145], fill=200)
+
                         rgb_img = img.convert('RGB')
                         rgb_img.save(img_path)
 

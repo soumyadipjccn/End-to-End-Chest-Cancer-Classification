@@ -2,6 +2,7 @@ artifacts_root: artifacts
 
 data_ingestion:
   root_dir: artifacts/data_ingestion
+  kaggle_dataset: mohamedhanyyy/chest-ctscan-images
   source_URL: https://github.com/entbount/Branching-tutorial/raw/master/chest-cancer-dataset.zip
   local_data_file: artifacts/data_ingestion/chest-cancer-dataset.zip
   unzip_dir: artifacts/data_ingestion
