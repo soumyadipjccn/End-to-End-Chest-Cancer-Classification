@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  chest-cancer-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chest_cancer_classification_app
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+    volumes:
+      - ./artifacts:/app/artifacts
+      - ./logs:/app/logs
+    restart: always

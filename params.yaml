@@ -1,0 +1,13 @@
+AUGMENTATION: true
+IMAGE_SIZE: [224, 224, 3]
+BATCH_SIZE: 16
+EPOCHS: 5
+LEARNING_RATE: 0.001
+INCLUDE_TOP: false
+WEIGHTS: imagenet
+CLASSES: 4
+CLASS_NAMES:
+  - adenocarcinoma
+  - large_cell_carcinoma
+  - normal
+  - squamous_cell_carcinoma
